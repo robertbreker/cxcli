@@ -1,0 +1,7 @@
+requests>=2.25.0
+rich>=9.8.2
+urllib3>=1.26.2
+argcomplete>=1.12.2
+keyring>=21.8.0
+PyYAML>=5.4.1
+jmespath>=0.10.0
