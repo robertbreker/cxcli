@@ -741,7 +741,7 @@ def execute_command(alloperations, config, args):
         elif "yaml" == args.output_as:
             console.print(yaml.safe_dump(responsecontent, sort_keys=False))
         elif "json" == args.output_as:
-            console.print(responsecontent)
+            console.print(json.dumps(responsecontent, indent=2))
         else:
             assert ()
     return 0 if response.ok else 255
