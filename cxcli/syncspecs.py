@@ -41,14 +41,9 @@ def parse_all_site_data(data, apis={}):
 
 
 def get_openapi_specs():
-    try:
-        with open(path, "r") as f:
-            # ToDo: Should expire
-            data = yaml.full_load(f)
-    except:
-        req = requests.get(f"{URL}/all_site_data.json")
-        req.raise_for_status()
-        data = yaml.safe_load(req.content)
+    req = requests.get(f"{URL}/all_site_data.json")
+    req.raise_for_status()
+    data = yaml.safe_load(req.content)
     apis = parse_all_site_data(data)
     return apis
 
