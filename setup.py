@@ -13,7 +13,7 @@ setuptools.setup(
     version="0.1",
     author="Robert Breker",
     author_email="",
-    description="A simple CLI for Citrix Cloud",
+    description="Experimental CLI for Citrix Cloud",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/robertbreker/cxcli",

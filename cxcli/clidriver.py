@@ -87,12 +87,12 @@ def config_logging(level):
 
 
 def get_all_services():
-    metacache_path = os.path.join(syncspecs.APISPECPATH, "metacache.dat")
-    if not os.path.exists(metacache_path):
+    if not os.path.exists(syncspecs.METACACHEPATH):
         console.print("Preparing API specs. Please wait...")
         syncspecs.sync_all()
         console.print("Done")
-    with open(metacache_path, "r") as fp:
+        sys.exit(1)
+    with open(syncspecs.METACACHEPATH, "r") as fp:
         metacache = json.load(fp)
     services = {}
     for filename in sorted(os.listdir(syncspecs.APISPECPATH)):
@@ -222,7 +222,7 @@ def populate_argpars_operation(
         "--output-as",
         help="Try presenting the result in the specified format",
         default="JSON",
-        choices=["json", "yaml", "table", "csv"],
+        choices=["json", "yaml", "table", "csv", "rawprint"],
         type=str.lower,
     )
     group.add_argument(
@@ -664,7 +664,7 @@ def sync_all_unpublished():
             )
         ):
             service = serviceinfo["Service"].lower()
-            cc_service_urls[service] = serviceinfo["Fqdn"]
+            cc_service_urls[service] = f"{serviceinfo['Fqdn']}/swagger/docs/v1"
     # Can't get all services from releaseapi, so add the others too
     for service in (
         "cloudlibrary",
@@ -676,8 +676,10 @@ def sync_all_unpublished():
         "partner",
         "registry",
     ):
-        cc_service_urls[service] = f"https://{service}.citrixworkspacesapi.net"
-    syncspecs.sync_unpublished(cc_service_urls)
+        cc_service_urls[
+            service
+        ] = f"https://{service}.citrixworkspacesapi.net/swagger/docs/v1"
+    syncspecs.sync_specs(cc_service_urls)
 
 
 def execute_command(alloperations, config, args):
@@ -742,6 +744,8 @@ def execute_command(alloperations, config, args):
             console.print(yaml.safe_dump(responsecontent, sort_keys=False))
         elif "json" == args.output_as:
             console.print(json.dumps(responsecontent, indent=2))
+        elif "rawprint" == args.output_as:
+            console.print(responsecontent)
         else:
             assert ()
     return 0 if response.ok else 255

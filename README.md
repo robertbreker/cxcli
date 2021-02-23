@@ -11,7 +11,7 @@ The CLI works using the REST APIs of Citrix Cloud, as documented on [Citrix's De
   <img alt="Microapps Sample" src="https://user-images.githubusercontent.com/4073077/107159986-4c83aa80-698b-11eb-9cd0-7c2b7873ebab.png" width="45%">
 </p>
 
-# Features
+## Features
 
 - Provides a simple and efficient way to interact with Citrix Cloud
 - Supports many Citrix Cloud services including: **adm**, **apppersonalization**, **cvadrestapis**, **globalappconfiguration**, **manageddesktops**, **microapps**, **notifications**, **quickdeploy**, **securebrowser**, **systemlog**, **virtualappsessentialls**, **webhook**, and **wem**.
@@ -35,6 +35,7 @@ python3 -m pip install git+https://github.com/robertbreker/cxcli
 ## Configuration
 
 Once installed, configure cxcli interactively:
+
 ```BASH
 cxcli --configure
 ```
@@ -72,11 +73,13 @@ cxcli microapps "import bundle" --geo us  --config config.txt --bundle integrati
 ## Autocomplete for Bash and Zsh
 
 For **Bash** - add the following snippet to your `~/.bashrc`-file:
+
 ```bash
 eval "$(register-python-argcomplete cxcli)"
 ```
 
 For **zsh** - Add the following snippet to your `~/.zshrc`-file:
+
 ```bash
 autoload bashcompinit
 bashcompinit
