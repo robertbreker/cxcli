@@ -107,9 +107,7 @@ def get_all_services():
             # Performance Tweak: Only load service JSON-files, when we'll use them
             with open(os.path.join(syncspecs.APISPECPATH, filename), "r") as read_file:
                 service["spec"] = json.load(read_file)
-            service["url"] = service["spec"]["host"]
-            if "basePath" in service["spec"]:
-                service["url"] += service["spec"]["basePath"]
+            patch_spec(service)
         else:
             try:
                 title = metacache[filename.replace(".json", "")]
@@ -118,6 +116,57 @@ def get_all_services():
             service["spec"] = {"info": {"title": title}, "paths": {}}
         services[service["name"]] = service
     return services
+
+
+def patch_spec(service):
+    # determine base url
+    service["url"] = service["spec"]["host"]
+    if "basePath" in service["spec"]:
+        service["url"] += service["spec"]["basePath"]
+
+    operationids = list()
+    for path, pathvalue in service["spec"]["paths"].items():
+        for method, methodvalue in pathvalue.items():
+            if method not in ("get", "post", "delete", "patch", "put"):
+                continue
+            # Todo: Try to protect against empty operationIds, like the administrators API
+            if "operationId" not in methodvalue:
+                if "summary" in methodvalue:
+                    methodvalue["operationId"] = re.sub(
+                        "[^a-zA-Z ]+", "", methodvalue["summary"]
+                    )
+                else:
+                    log.debug(
+                        f"For {service['url']} skipping {path} {method} as there is no operationId"
+                    )
+                    return
+            # ToDo: Tweak awkward operationIds, like Microapps', to not contain spaces
+            methodvalue["operationId"] = methodvalue["operationId"].replace(" ", "_")
+
+            # ToDo: Protect against duplicate operationIds, like agenthub
+            if methodvalue["operationId"] in operationids:
+                counter = 2
+                while methodvalue["operationId"] + str(counter) in operationids:
+                    counter += 1
+                methodvalue["operationId"] = methodvalue["operationId"] + str(counter)
+            operationids.append(methodvalue["operationId"])
+
+            # Skip ping operations and operations, that indicate that they will not work with BearerToken
+            if "ping" in methodvalue["operationId"].lower() or (
+                "summary" in methodvalue
+                and "[ServiceKey]" in methodvalue["summary"]
+                and "[BearerToken]" not in methodvalue["summary"]
+            ):
+                methodvalue["operationId"] = None
+
+            # Write back the potentially changed operationId
+            if methodvalue["operationId"] is None:
+                # Wish to not list this operation
+                del methodvalue["operationId"]
+            else:
+                service["spec"]["paths"][path][method]["operationId"] = methodvalue[
+                    "operationId"
+                ]
 
 
 def should_ignore_parameter(parameter):
@@ -170,38 +219,10 @@ def populate_argpars_service(alloperations, command_subparsers, service, config)
 def populate_argpars_operation(
     alloperations, service, config, command_subparser, path, requesttype, requestspec
 ):
-    originalname = service["originalname"]
     if "operationId" not in requestspec:
-        if "summary" in requestspec:
-            # ToDo: Hack for administrators API. Fix upstream.
-            requestspec["operationId"] = re.sub(
-                "[^a-zA-Z]+", "", requestspec["summary"].title()
-            )
-        else:
-            log.debug(
-                f"For {service['url']} skipping {path} as there is no operationId"
-            )
-            return
-    # ToDo: Tweak awkward operationIds, like Microapps', to not contain spaces
-    requestspec["operationId"] = requestspec["operationId"].replace(" ", "_")
+        return
+    originalname = service["originalname"]
     operation_id = requestspec["operationId"]
-    if operation_id in (
-        "Ping_Get",
-        "GetPing",
-        "ping",
-        "Ping_GetTime",
-        "Ping_PingAsync",
-        "Ping_GetAsync",
-    ):
-        # Skip ping operation
-        return
-    if (
-        "summary" in requestspec
-        and "[ServiceKey]" in requestspec["summary"]
-        and "[BearerToken]" not in requestspec["summary"]
-    ):
-        # Skip operations that don't indicate that they'll work with BearerToken
-        return
 
     alloperations[originalname][operation_id] = requestspec
     alloperations[originalname][operation_id]["method"] = requesttype
@@ -575,6 +596,14 @@ def generate_csv(inputdict):
 
 
 def main():
+    try:
+        return _main()
+    except KeyboardInterrupt:
+        console.print("SIGINT received")
+        return 255
+
+
+def _main():
     parser = argparse.ArgumentParser(description="cxcli - CLI for Citrix Cloud")
     parser.add_argument(
         "--verbose", help="increase output verbosity", action="store_true"

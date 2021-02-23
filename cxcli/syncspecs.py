@@ -7,6 +7,7 @@ import errno
 import shutil
 from rich.progress import track
 import concurrent.futures
+from urllib.parse import urlparse
 
 URL = "https://developer-data.cloud.com/master"
 APISPECPATH = os.path.join(os.path.expanduser("~"), ".cxcli", "apispecs")
@@ -135,6 +136,9 @@ def sync_spec_single(openapi_spec):
             {"name": "api", "in": "path", "required": "true"},
         ]
         spec = patch_parameters(spec, params)
+    # Fix up openapi files without service host
+    if not "host" in spec and ".citrixworkspacesapi.net" in apiurl:
+        spec["host"] = urlparse(apiurl).netloc
     return {"groupname": groupname, "spec": spec}
 
 
