@@ -18,6 +18,7 @@ from rich.table import Table
 import csv
 import io
 import yaml
+import re
 import sys
 
 from . import syncspecs
@@ -111,7 +112,7 @@ def get_all_services():
                 service["url"] += service["spec"]["basePath"]
         else:
             try:
-                title = metacache[filename]
+                title = metacache[filename.replace(".json", "")]
             except KeyError:
                 title = ""
             service["spec"] = {"info": {"title": title}, "paths": {}}
@@ -171,9 +172,35 @@ def populate_argpars_operation(
 ):
     originalname = service["originalname"]
     if "operationId" not in requestspec:
-        log.debug(f"For {service['url']} skipping {path} as there is no operationId")
-        return
+        if "summary" in requestspec:
+            # ToDo: Hack for administrators API. Fix upstream.
+            requestspec["operationId"] = re.sub(
+                "[^a-zA-Z]+", "", requestspec["summary"].title()
+            )
+        else:
+            log.warning(
+                f"For {service['url']} skipping {path} as there is no operationId"
+            )
+            return
     operation_id = requestspec["operationId"]
+    if operation_id in (
+        "Ping_Get",
+        "GetPing",
+        "ping",
+        "Ping_GetTime",
+        "Ping_PingAsync",
+        "Ping_GetAsync",
+    ):
+        # Skip ping operation
+        return
+    if (
+        "summary" in requestspec
+        and "[ServiceKey]" in requestspec["summary"]
+        and "[BearerToken]" not in requestspec["summary"]
+    ):
+        # Skip operations that don't indicate that they'll work with BearerToken
+        return
+
     alloperations[originalname][operation_id] = requestspec
     alloperations[originalname][operation_id]["method"] = requesttype
     alloperations[originalname][operation_id]["url"] = (
@@ -244,22 +271,25 @@ def populate_argpars_parameter_element(
     if "type" not in element:
         # Hack
         element["type"] = "string"
-    if element["type"] == "object":
-        for propertykey, propertyvalue in element["properties"].items():
-            required = parent_required and (
-                "required" not in element or propertykey in element["required"]
-            )
-            command_parser.add_argument(
-                f"--{elementkey}-{propertykey}",
-                help=get_help_from_element(propertyvalue),
-                required=required,
-                default=argparse.SUPPRESS,
-            )
-        return
-
     # Don't show None default
     parameter_default = argparse.SUPPRESS
 
+    if element["type"] == "object":
+        if "properties" in element:
+            for propertykey, propertyvalue in element["properties"].items():
+                required = parent_required and (
+                    "required" not in element or propertykey in element["required"]
+                )
+                command_parser.add_argument(
+                    f"--{elementkey}-{propertykey}",
+                    help=get_help_from_element(propertyvalue),
+                    required=required,
+                    default=parameter_default,
+                )
+            return
+        else:
+            # Interpret object as string, as we don't know what else to do with it
+            element["type"] = "string"
     if element["type"] != "boolean" and "enum" in element:
         # True/False enum values are awkward for argparse - try fixing the type for these
         isbool = True
@@ -281,14 +311,18 @@ def populate_argpars_parameter_element(
             # ADM wants this parameter for Cloud hosted instances
             parameter_default = "true"
         choices = element["enum"] if "enum" in element else None
-        command_parser.add_argument(
-            f"--{elementkey}",
-            help=get_help_from_element(element),
-            required=parent_required and parameter_default == argparse.SUPPRESS,
-            default=parameter_default,
-            choices=choices,
-            type=get_parameter_type(element),
-        )
+        try:
+            command_parser.add_argument(
+                f"--{elementkey}",
+                help=get_help_from_element(element),
+                required=parent_required and parameter_default == argparse.SUPPRESS,
+                default=parameter_default,
+                choices=choices,
+                type=get_parameter_type(element),
+            )
+        except argparse.ArgumentError as exc:
+            log.exception(exc)
+            pass
     elif element["type"] == "boolean":
         command_parser.add_argument(
             f"--{elementkey}",
@@ -307,7 +341,7 @@ def populate_argpars_parameter_element(
             nargs="+" if parent_required else "*",
         )
     else:
-        log.error("Unhanded type: " + element["type"])
+        log.error("Unhanded Type (1): " + element["type"])
 
 
 def get_parameter_type(element):
@@ -320,7 +354,7 @@ def get_parameter_type(element):
     elif element["type"] == "file":
         type = argparse.FileType("rb", 0)
     else:
-        raise Exception(f'Unhandled Type: {element["type"]}')
+        raise Exception(f'Unhandled Type (2): {element["type"]}')
     return type
 
 
@@ -550,6 +584,11 @@ def main():
         help="Update OpenAPI specs and CLI commands",
         action="store_true",
     )
+    parser.add_argument(
+        "--update-unpublished-specs",
+        help=argparse.SUPPRESS,
+        action="store_true",
+    )
     command_subparsers = parser.add_subparsers(
         dest="command", help="Available Services", metavar=""
     )
@@ -563,6 +602,10 @@ def main():
         syncspecs.reset_all()
         console.print("Preparing API specs. Please wait...")
         syncspecs.sync_all()
+        console.print("Done.")
+    if args.update_unpublished_specs:
+        console.print("Preparing API specs. Please wait...")
+        sync_all_unpublished()
         console.print("Done.")
     if args.configure:
         prompt_configuration()
@@ -593,6 +636,50 @@ def get_default_headers():
     return headersdict
 
 
+def sync_all_unpublished():
+    config = get_configuration()
+    url = f"https://releasesapi.citrixworkspacesapi.net/{config['customerid']}/releases"
+    headersdict = get_default_headers()
+    headersdict.update(authenticate_api(config))
+    response = requests.get(url, headers=headersdict)
+    if not response.ok:
+        log.error(f"Failure from {url} - {response.status_code}")
+        return 2
+    cc_service_urls = {}
+    for serviceinfo in response.json():
+        if (
+            serviceinfo["Region"] == "EastUS"
+            and serviceinfo["Release"] == "release-a"
+            and serviceinfo["Fqdn"].endswith(".citrixworkspacesapi.net")
+            and serviceinfo["Service"]
+            not in (
+                "Console",
+                "DemoResourceProvider",
+                "Encryption",
+                "FasHub",
+                "HealthDataStatusManager",
+                "MediaStorage",
+                "ReleasesProxy",
+                "WebRelay",
+            )
+        ):
+            service = serviceinfo["Service"].lower()
+            cc_service_urls[service] = serviceinfo["Fqdn"]
+    # Can't get all services from releaseapi, so add the others too
+    for service in (
+        "cloudlibrary",
+        "customers",
+        "features",
+        "identity",
+        "messaging",
+        "notifications",
+        "partner",
+        "registry",
+    ):
+        cc_service_urls[service] = f"https://{service}.citrixworkspacesapi.net"
+    syncspecs.sync_unpublished(cc_service_urls)
+
+
 def execute_command(alloperations, config, args):
     command_key = args.command
     if "commandcomponent" in args and args.commandcomponent is not None:
@@ -621,9 +708,9 @@ def execute_command(alloperations, config, args):
         files=filesdict,
     )
     if response.ok:
-        log.info(f"Success from {url} - {response.status_code}\n")
+        log.info(f"Success from {url} - {response.status_code}")
     else:
-        log.error(f"Failure from {url} - {response.status_code}\n")
+        log.error(f"Failure from {url} - {response.status_code}")
     if args.verbose:
         headerlog = ""
         for header in response.headers.items():

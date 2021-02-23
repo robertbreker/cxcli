@@ -74,11 +74,7 @@ def sync_all():
             raise
     openapi_specs = get_openapi_specs().items()
     groups = {}
-    metacache = {}
-    metacache_path = os.path.join(APISPECPATH, "metacache.dat")
-    if os.path.exists(metacache_path):
-        with open(metacache_path, "r") as fp:
-            metacache = json.load(fp)
+
     for apiname, apipath in track(
         openapi_specs, description="Updating OpenAPI specs..."
     ):
@@ -88,7 +84,7 @@ def sync_all():
         else:
             groupname = f"{apiname}.json"
         if os.path.exists(os.path.join(APISPECPATH, groupname)):
-            # Todo: check time
+            # Todo: check age and expire
             continue
         response = requests.get(f"{URL}{apipath}")
         if not response.ok:
@@ -105,6 +101,11 @@ def sync_all():
                 {"name": "geo", "in": "path", "required": "true"},
             ]
             spec = patch_parameters(spec, params)
+        elif apiname == "reportingapi":
+            params = [
+                {"name": "customerid", "in": "path", "required": "true"},
+            ]
+            spec = patch_parameters(spec, params)
         elif apiname == "wem":
             # Custom hack for wem
             params = [
@@ -115,12 +116,41 @@ def sync_all():
             if groupname not in groups:
                 groups[groupname] = {}
             groups[groupname] = mymerge(spec, groups[groupname])
-            metacache[groupname] = spec["info"]["title"]
-    with open(metacache_path, "w") as fp:
-        json.dump(metacache, fp, indent=2)
     for groupname, groupvalue in groups.items():
         with open(os.path.join(APISPECPATH, groupname), "w+") as fp:
             json.dump(groupvalue, fp, indent=2)
+    build_metacache()
+
+
+def build_metacache():
+    metacache = {}
+    for filename in sorted(os.listdir(APISPECPATH)):
+        if not filename.endswith(".json"):
+            continue
+        with open(os.path.join(APISPECPATH, filename), "r") as read_file:
+            spec = json.load(read_file)
+            metacache[filename.replace(".json", "")] = spec["info"]["title"]
+    with open(os.path.join(APISPECPATH, "metacache.dat"), "w") as fp:
+        json.dump(metacache, fp, indent=2)
+
+
+def sync_unpublished(cc_service_urls):
+    for service, cc_service_url in track(
+        cc_service_urls.items(), description="Updating OpenAPI specs..."
+    ):
+        if os.path.exists(os.path.join(APISPECPATH, f"{service}.json")):
+            # Todo: check age and expire
+            continue
+        url = f"{cc_service_url}/swagger/docs/v1"
+        response = requests.get(f"{url}")
+        if not response.ok:
+            print(f"Failed to get {url}")
+            continue
+        spec = response.json()
+        spec["host"] = cc_service_url.replace("https://", "")
+        with open(os.path.join(APISPECPATH, f"{service}.json"), "w+") as fp:
+            json.dump(spec, fp, indent=2)
+    build_metacache()
 
 
 def patch_parameters(spec, add_parameters):
