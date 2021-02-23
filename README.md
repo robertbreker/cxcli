@@ -65,9 +65,9 @@ cxcli --verbose notifications Notifications_Create --eventId $(uuidgen) --conten
 - Export and re-import a Microapp integration bundle:
 
 ```bash
-cxcli microapps "export bundle" --geo us --bundleExportType default --integrationExportConfig-id 1 --output-binary integration.mapp
+cxcli microapps export_bundle --geo us --bundleExportType default --integrationExportConfig-id 1 --output-binary integration.mapp
 echo '{ "integrationImportConfig": { "type": "GWSC", "baseUrl": "https://service1.com/"} }' > config.txt
-cxcli microapps "import bundle" --geo us  --config config.txt --bundle integration.mapp
+cxcli microapps import_bundle --geo us  --config config.txt --bundle integration.mapp
 ```
 
 ## Autocomplete for Bash and Zsh

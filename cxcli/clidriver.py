@@ -178,10 +178,12 @@ def populate_argpars_operation(
                 "[^a-zA-Z]+", "", requestspec["summary"].title()
             )
         else:
-            log.warning(
+            log.debug(
                 f"For {service['url']} skipping {path} as there is no operationId"
             )
             return
+    # ToDo: Tweak awkward operationIds, like Microapps', to not contain spaces
+    requestspec["operationId"] = requestspec["operationId"].replace(" ", "_")
     operation_id = requestspec["operationId"]
     if operation_id in (
         "Ping_Get",
