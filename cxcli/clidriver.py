@@ -492,7 +492,8 @@ def authenticate_api(config):
         auth_data["grant_type"] = "client_credentials"
         auth_data["client_id"] = config["clientid"]
         auth_data["client_secret"] = config["clientsecret"]
-        headers = get_default_headers().update(
+        headers = get_default_headers()
+        headers.update(
             {
                 "Content-Type": "application/x-www-form-urlencoded",
                 "Accept": "application/json",
