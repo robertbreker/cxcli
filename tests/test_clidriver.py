@@ -20,7 +20,7 @@ def patch_mocker_systemlog(mocker):
 def test_help(mocker):
     patch_mocker_systemlog(mocker)
     mocker.patch("sys.exit")
-    sys.argv = "cxcli -h"
+    sys.argv = "cxcli -h".split()
     rc = clidriver.main()
     assert rc == 0
 
@@ -67,6 +67,11 @@ def test_output_as_csv(mocker):
     rc = clidriver.main()
     assert rc == 0
 
+def test_output_as_rawprint(mocker):
+    patch_mocker_systemlog(mocker)
+    sys.argv = "cxcli systemlog GetRecords --limit 2 --output-as rawprint".split()
+    rc = clidriver.main()
+    assert rc == 0
 
 def test_main(mocker):
     patch_mocker_systemlog(mocker)
