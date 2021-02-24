@@ -66,7 +66,7 @@ cxcli notifications Notifications_CreateItems --eventId $(uuidgen) --content '{
 
 ```bash
 cxcli microapps export_bundle --geo us --bundleExportType default --integrationExportConfig-id 1 --output-binary integration.mapp
-echo '{ "integrationImportConfig": { "type": "GWSC", "baseUrl": "https://service1.com/"} }' > config.txt
+echo '{ "integrationImportConfig": { "type": "GWSC", "baseUrl": "https://mybaseurl/"} }' > config.txt
 cxcli microapps import_bundle --geo us  --config config.txt --bundle integration.mapp
 ```
 
