@@ -119,15 +119,21 @@ def get_all_services():
 
 
 def patch_spec(service):
+    # This function could live in syncspecs to keep the specs slim, but it'd make
+    # fixing problems harder... Consideration for the future
+
     # determine base url
     service["url"] = service["spec"]["host"]
     if "basePath" in service["spec"]:
         service["url"] += service["spec"]["basePath"]
 
     operationids = list()
+    purgepaths = list()
     for path, pathvalue in service["spec"]["paths"].items():
+        purgemethods = list()
         for method, methodvalue in pathvalue.items():
             if method not in ("get", "post", "delete", "patch", "put"):
+                purgemethods.append(method)
                 continue
             # Todo: Try to protect against empty operationIds, like the administrators API
             if "operationId" not in methodvalue:
@@ -139,11 +145,22 @@ def patch_spec(service):
                     log.debug(
                         f"For {service['url']} skipping {path} {method} as there is no operationId"
                     )
-                    return
+                    purgemethods.append(method)
+                    continue
+
+            # Skip "ping" operations and operations that indicate that they will only work with ServiceKey
+            if "ping" in methodvalue["operationId"].lower() or (
+                "summary" in methodvalue
+                and "[ServiceKey]" in methodvalue["summary"]
+                and "[BearerToken]" not in methodvalue["summary"]
+            ):
+                purgemethods.append(method)
+                continue
+
             # ToDo: Tweak awkward operationIds, like Microapps', to not contain spaces
             methodvalue["operationId"] = methodvalue["operationId"].replace(" ", "_")
 
-            # ToDo: Protect against duplicate operationIds, like agenthub
+            # ToDo: Work around duplicate operationIds, like in agenthub
             if methodvalue["operationId"] in operationids:
                 counter = 2
                 while methodvalue["operationId"] + str(counter) in operationids:
@@ -151,31 +168,41 @@ def patch_spec(service):
                 methodvalue["operationId"] = methodvalue["operationId"] + str(counter)
             operationids.append(methodvalue["operationId"])
 
-            # Skip ping operations and operations, that indicate that they will not work with BearerToken
-            if "ping" in methodvalue["operationId"].lower() or (
-                "summary" in methodvalue
-                and "[ServiceKey]" in methodvalue["summary"]
-                and "[BearerToken]" not in methodvalue["summary"]
-            ):
-                methodvalue["operationId"] = None
-
-            # Write back the potentially changed operationId
-            if methodvalue["operationId"] is None:
-                # Wish to not list this operation
-                del methodvalue["operationId"]
-            else:
-                service["spec"]["paths"][path][method]["operationId"] = methodvalue[
-                    "operationId"
-                ]
+            # Resolve references in spec
+            if "parameters" in methodvalue:
+                newparameters = list()
+                for parameter in methodvalue["parameters"]:
+                    if not should_ignore_parameter(parameter):
+                        newparameters.append(
+                            resolve_openapi_references(service, parameter)
+                        )
+                methodvalue["parameters"] = newparameters
+        # Purge uneccesary methods
+        for method in purgemethods:
+            del service["spec"]["paths"][path][method]
+        if len(service["spec"]["paths"]) == 0:
+            purgepaths.append(path)
+    # Purge uneccesary paths
+    for path in purgepaths:
+        del service["spec"]["paths"][path]
+    # Purge unnecessary keys
+    if "definitions" in service["spec"]:
+        del service["spec"]["definitions"]
+    if "parameters" in service["spec"]:
+        del service["spec"]["parameters"]
 
 
 def should_ignore_parameter(parameter):
-    return parameter["in"] == "header" and parameter["name"] in (
-        "Authorization",
-        "Accept",
-        "Accept-Charset",
-        "Citrix-TransactionId",
-        "X-ActionName",
+    return "in" not in parameter or (
+        parameter["in"] == "header"
+        and parameter["name"]
+        in (
+            "Authorization",
+            "Accept",
+            "Accept-Charset",
+            "Citrix-TransactionId",
+            "X-ActionName",
+        )
     )
 
 
@@ -239,7 +266,7 @@ def populate_argpars_operation(
     command_parser.set_defaults(subcommand=operation_id)
     if "parameters" in requestspec:
         for parameter in requestspec["parameters"]:
-            populate_argpars_parameter(service, parameter, config, command_parser)
+            populate_argpars_parameter(parameter, config, command_parser)
     group = command_parser.add_mutually_exclusive_group()
     group.add_argument(
         "--output-as",
@@ -262,10 +289,7 @@ def populate_argpars_operation(
     )
 
 
-def populate_argpars_parameter(service, parameter, config, command_parser):
-    parameter = resolve_openapi_references(service, parameter)
-    if should_ignore_parameter(parameter):
-        return
+def populate_argpars_parameter(parameter, config, command_parser):
     required = "required" in parameter and parameter["required"]
     # Where a schema is provided... we query individual schema parameters, instead of top-level parameters
     if "schema" in parameter and "properties" in parameter["schema"]:
@@ -449,11 +473,7 @@ def process_openapi_specs(alloperations, command_subparsers, config):
 def get_value(atype, aspec, args):
     adict = {}
     for parameter in aspec["parameters"]:
-        if (
-            "in" not in parameter
-            or parameter["in"] != atype
-            or should_ignore_parameter(parameter)
-        ):
+        if "in" not in parameter or parameter["in"] != atype:
             continue
         argname = parameter["name"].replace("-", "_")
         if hasattr(args, argname):
@@ -479,13 +499,19 @@ def get_value(atype, aspec, args):
                                     adict[elementkey][propertykey] = value
                             except AttributeError:
                                 pass
-                elif element["type"] in ("string", "integer", "number", "array"):
+                elif element["type"] in (
+                    "string",
+                    "integer",
+                    "number",
+                    "array",
+                    "boolean",
+                ):
                     argname = elementkey.replace("-", "_")
                     try:
                         value = getattr(args, argname)
                         if value is not None:
                             if atype == "body" and isinstance(value, list):
-                                # ToDo: not sure about this, but seems neded for Notification post
+                                # ToDo: not sure about doing it this way, but seems neded for Notification post
                                 try:
                                     valuelist = value
                                     value = list()
@@ -556,7 +582,9 @@ def tryconvert_result_to_list(inputdict):
     elif "Items" in inputdict:
         return inputdict["Items"]
     else:
-        log.error("Not sure how to convert the result to a a table. Not trying it.")
+        log.error(
+            "Not sure how to convert the result to rows. Falling back to 'rawprint'-mode."
+        )
         return None
 
 

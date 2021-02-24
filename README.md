@@ -55,7 +55,7 @@ Follow the Citrix Cloud Documentation, to [create an API Client](https://develop
 - Create a notification in Citrix Cloud:
 
 ```bash
-cxcli --verbose notifications Notifications_Create --eventId $(uuidgen) --content '{
+cxcli notifications Notifications_CreateItems --eventId $(uuidgen) --content '{
       "languageTag": "en-US",
       "title": "Dinner Time",
       "description": "Fish and Chips!"
