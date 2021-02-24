@@ -4,6 +4,7 @@ import logging
 import os
 import os.path
 import time
+import urllib.parse
 
 import argcomplete
 import jmespath
@@ -756,7 +757,7 @@ def execute_command(alloperations, config, args):
     pathdict = get_value("path", aspec, args)
     url = aspec["url"]
     for key, value in pathdict.items():
-        url = url.replace("{" + key + "}", value)
+        url = url.replace("{" + key + "}", urllib.parse.quote_plus(value))
     paramsdict = get_value("query", aspec, args)
     headersdict = get_default_headers()
     headersdict.update(get_value("header", aspec, args))
