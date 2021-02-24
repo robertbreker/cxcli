@@ -699,14 +699,19 @@ def sync_all_unpublished():
             cc_service_urls[service] = f"{serviceinfo['Fqdn']}/swagger/docs/v1"
     # Can't get all services from releaseapi, so add the others too
     for service in (
-        "cloudlibrary",
         "customers",
+        "cloudlibrary",
+        "cloudlicense",
+        "directory",
         "features",
+        "healthdatastore",
         "identity",
         "messaging",
         "notifications",
         "partner",
         "registry",
+        "serviceprofiles",
+        "trust",
     ):
         cc_service_urls[
             service

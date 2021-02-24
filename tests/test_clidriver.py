@@ -5,13 +5,14 @@ import sys
 
 sys.path.insert(0, os.path.dirname(__file__) + "/../")
 import cxcli.clidriver as clidriver
+import cxcli.syncspecs as syncspecs
 
 
 def patch_mocker_systemlog(mocker):
     mocker.patch(
         "cxcli.syncspecs.parse_all_site_data",
         return_value={
-            "systemlog": "/explore-more-apis-sdks/cloud-services-platform/systemlog/spec/systemlog.yml"
+            "systemlog": f"{syncspecs.URL}/explore-more-apis-sdks/cloud-services-platform/systemlog/spec/systemlog.yml"
         },
     )
 
