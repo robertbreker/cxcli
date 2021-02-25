@@ -25,7 +25,7 @@ setuptools.setup(
     ],
     entry_points={
         "console_scripts": [
-            "cxcli=cxcli.clidriver:main",
+            "cx=cxcli.clidriver:main",
         ],
     },
     python_requires=">=3.6",
