@@ -1,0 +1,65 @@
+{
+  "Items": [
+    {
+      "RecordId": "a4ecf6d8-d2af-4a1b-ac3e-d479ddf27c05-637497977100267962",
+      "UtcTimestamp": "2021-02-24T21:08:30.0267962Z",
+      "CustomerId": "dvintfd45cca",
+      "EventType": "administrator/update",
+      "TargetId": "a3314169-7d8b-481f-982b-b89476d7d267",
+      "TargetDisplayName": "robert.breker@citrix.com",
+      "TargetType": "administrator",
+      "BeforeChanges": {
+        "AccessType": "Full",
+        "UpdatedDate": "02/23/2021 19:24:20"
+      },
+      "AfterChanges": {
+        "AccessType": "Full",
+        "UpdatedDate": "02/24/2021 21:08:29"
+      },
+      "AgentId": "delegatedadministration",
+      "ServiceProfileName": null,
+      "ActorId": null,
+      "ActorDisplayName": "CwcSystem",
+      "ActorType": "administrator",
+      "Message": {
+        "en-US": "Administrator roles or permissions updated",
+        "de-DE": "Administratorrollen oder -berechtigungen aktualisiert",
+        "es-ES": "Permisos o roles de administrador actualizados",
+        "fr-FR": "R\u00f4les ou autorisations d'administrateur mis \u00e0 jour",
+        "ja-JP": "\u7ba1\u7406\u8005\u306e\u5f79\u5272\u307e\u305f\u306f\u6a29\u9650\u304c\u66f4\u65b0\u3055\u308c\u307e\u3057\u305f\u3002"
+      }
+    },
+    {
+      "RecordId": "e0a4802b-d86e-46af-a349-56a5cfb5d95c-637497977089282052",
+      "UtcTimestamp": "2021-02-24T21:08:28.9282052Z",
+      "CustomerId": "dvintfd45cca",
+      "EventType": "administrator/update",
+      "TargetId": "91146d8e-3d1e-406a-b6e3-11296b66d0d4",
+      "TargetDisplayName": "robert.breker@citrix.com",
+      "TargetType": "administrator",
+      "BeforeChanges": {
+        "AccessType": "Full",
+        "UpdatedDate": "02/15/2021 15:46:58"
+      },
+      "AfterChanges": {
+        "AccessType": "Full",
+        "UpdatedDate": "02/24/2021 21:08:28"
+      },
+      "AgentId": "delegatedadministration",
+      "ServiceProfileName": null,
+      "ActorId": null,
+      "ActorDisplayName": "CwcSystem",
+      "ActorType": "administrator",
+      "Message": {
+        "en-US": "Administrator roles or permissions updated",
+        "de-DE": "Administratorrollen oder -berechtigungen aktualisiert",
+        "es-ES": "Permisos o roles de administrador actualizados",
+        "fr-FR": "R\u00f4les ou autorisations d'administrateur mis \u00e0 jour",
+        "ja-JP": "\u7ba1\u7406\u8005\u306e\u5f79\u5272\u307e\u305f\u306f\u6a29\u9650\u304c\u66f4\u65b0\u3055\u308c\u307e\u3057\u305f\u3002"
+      }
+    }
+  ],
+  "Count": 2,
+  "EstimatedTotalItems": 2,
+  "ContinuationToken": null
+}

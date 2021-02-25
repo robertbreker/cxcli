@@ -121,7 +121,7 @@ def get_all_services():
 
 def patch_spec(service):
     # This function could live in syncspecs to keep the specs slim, but it'd make
-    # fixing problems harder... Consideration for the future
+    # fixing problems harder... so that's a consideration for the future
 
     # determine base url
     service["url"] = service["spec"]["host"]
@@ -161,7 +161,7 @@ def patch_spec(service):
             # ToDo: Tweak awkward operationIds, like Microapps', to not contain spaces
             methodvalue["operationId"] = methodvalue["operationId"].replace(" ", "_")
 
-            # ToDo: Work around duplicate operationIds, like in agenthub
+            # ToDo: Work around duplicate operationIds, like in agenthub by renaming
             if methodvalue["operationId"] in operationids:
                 counter = 2
                 while methodvalue["operationId"] + str(counter) in operationids:
@@ -536,7 +536,7 @@ def authenticate_api(config):
         if timestamp and int(timestamp) + 59 * 60 > time.time():
             # we can use cached access_tokens for up to 59m
             access_token = keyring.get_password("cxcli", ":access_token")
-    if access_token is None:
+    if True or access_token is None:
         # get a fresh access_token
         auth_data = {}
         auth_data["grant_type"] = "client_credentials"
@@ -792,8 +792,10 @@ def execute_command(alloperations, config, args):
     else:
         try:
             responsecontent = response.json()
-        except json.decoder.JSONDecodeError:
+        except json.decoder.JSONDecodeError as exc:
+            logging.info("JSON decoding failed with: " + str(exc))
             responsecontent = response.text
+
             console.print(responsecontent)
             return 1
         if "cliquery" in args and args.cliquery:
