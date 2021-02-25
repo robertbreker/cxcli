@@ -15,8 +15,8 @@ def read_datafile(name):
 
 @pytest.fixture
 def services_mock(mocker, requests_mock):
-    mocker.patch(
-        "cxcli.syncspecs.parse_all_site_data",
+    mocker.patch.object(
+        syncspecs, "get_openapi_specs",
         return_value={
             "notifications": f"{syncspecs.URL}/explore-more-apis-sdks/cloud-services-platform/notifications/spec/notifications.yml",
             "systemlog": f"{syncspecs.URL}/explore-more-apis-sdks/cloud-services-platform/systemlog/spec/systemlog.yml",
