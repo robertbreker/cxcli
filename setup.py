@@ -10,7 +10,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="cxcli",
-    version="0.1",
+    version="0.1.0",
     author="Robert Breker",
     author_email="",
     description="Experimental CLI for Citrix Cloud",
