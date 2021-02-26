@@ -29,7 +29,7 @@ cxcli requires Python 3.x. Find more information [here](https://wiki.python.org/
 Install cxcli using:
 
 ```BASH
-python3 -m pip install git+https://github.com/robertbreker/cxcli
+python3 -m pip install cxcli
 ```
 
 ## Configuration
@@ -37,37 +37,42 @@ python3 -m pip install git+https://github.com/robertbreker/cxcli
 Once installed, configure cxcli interactively:
 
 ```BASH
-cxcli --configure
+cx --configure
 ```
 
 Follow the Citrix Cloud Documentation, to [create an API Client](https://developer.cloud.com/getting-started/docs/overview) and obtain the `CustomerId`, `ClientID`, `ClientSecret` required as part of the configuration.
 
->**Note:** By default, cxcli will store credentials in the user's system keyring service. Alternatively, you can provide the configuration using environment variables `CXCUSTOMERID`, `CXCLIENTID`, and `CXCLIENTSECRET`.
+>**Note:**
+> By default, cxcli will store credentials in the user's system keyring service (Windows Credential Locker, macOS Keychain, KDE KWallet, FreeDesktop Secret Service). Should your environment not have a keyring service, you can provide the configuration using environment variables `CXCUSTOMERID`, `CXCLIENTID`, and `CXCLIENTSECRET`.
 
 ## Usage examples
 
-- Show a list of Cloud Services available via CLI: `cxcli -h`
-- Show a list of commands available within a Cloud Service: `cxcli systemlog`
-- Extract the latest records from Citrix Cloud's systemlog-service: `cxcli systemlog GetRecords`
+- Show a list of Cloud Services available via CLI: `cx -h`
+- Show a list of commands available within a Cloud Service: `cx systemlog`
+- Extract the latest records from Citrix Cloud's systemlog-service: `cx systemlog GetRecords`
 - Provide output as YAML: `cxcli systemlog GetRecords --output-as yaml`
-- Filter for fields using JMESPath: `cxcli systemlog GetRecords --cliquery 'Items[].Message."en-US"'`
-- Filter for values using JMESPath: `cxcli systemlog GetRecords --cliquery 'Items[?ActorDisplayName == "a.bad@m.an"]'`
-- Create a notification in Citrix Cloud:
+- Filter for fields using JMESPath: `cx systemlog GetRecords --cliquery 'Items[].Message."en-US"'`
+- Filter for values using JMESPath: `cx systemlog GetRecords --cliquery 'Items[?ActorDisplayName == "a.bad@m.an"]'`
+- Create an Administrator notification in Citrix Cloud:
 
 ```bash
-cxcli notifications Notifications_CreateItems --eventId $(uuidgen) --content '{
+cx notifications Notifications_CreateItems --eventId $(uuidgen) --content '{
       "languageTag": "en-US",
       "title": "Dinner Time",
       "description": "Fish and Chips!"
    }'  --severity "Information" --destinationAdmin "*" --component "Citrix Cloud" --priority High --createdDate 2021-02-13T08:20:17.120808-08:00
 ```
 
-- Export and re-import a Microapp integration bundle:
+- Export a Microapp integration bundle as a backup:
 
 ```bash
-cxcli microapps export_bundle --geo us --bundleExportType default --integrationExportConfig-id 1 --output-binary integration.mapp
+cx microapps export_bundle --geo us --bundleExportType default --integrationExportConfig-id 1 --output-binary integration.mapp
+
+- Re-importing the Microapp integration bundle, providing the necessary base configuration:
+
+```bash
 echo '{ "integrationImportConfig": { "type": "GWSC", "baseUrl": "https://mybaseurl/"} }' > config.txt
-cxcli microapps import_bundle --geo us  --config config.txt --bundle integration.mapp
+cx microapps import_bundle --geo us  --config config.txt --bundle integration.mapp
 ```
 
 ## Autocomplete for Bash and Zsh
@@ -75,7 +80,7 @@ cxcli microapps import_bundle --geo us  --config config.txt --bundle integration
 For **Bash** - add the following snippet to your `~/.bashrc`-file:
 
 ```bash
-eval "$(register-python-argcomplete cxcli)"
+eval "$(register-python-argcomplete cx)"
 ```
 
 For **zsh** - Add the following snippet to your `~/.zshrc`-file:
@@ -83,5 +88,5 @@ For **zsh** - Add the following snippet to your `~/.zshrc`-file:
 ```bash
 autoload bashcompinit
 bashcompinit
-eval "$(register-python-argcomplete cxcli)"
+eval "$(register-python-argcomplete cx)"
 ```
