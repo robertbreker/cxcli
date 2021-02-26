@@ -41,7 +41,17 @@ def prompt_configuration():
             default=config["clientsecret"],
             show_default=False,
         )
-        if Confirm.ask("Please confirm to store this configuration in the keying"):
+        goodcredentials = True
+        try:
+            console.print("Validating credentials... ", end=None)
+            authenticate_api(config, use_cache=False)
+            console.print("Success.", style="green")
+        except AuthenticationException:
+            console.print("Error. Please check the credentials.", style="red")
+            goodcredentials = False
+        if goodcredentials and Confirm.ask(
+            "Please confirm to store this configuration in the OS keying"
+        ):
             keyring.set_password("cxcli", ":customerid", config["customerid"])
             keyring.set_password("cxcli", ":clientid", config["clientid"])
             keyring.set_password("cxcli", ":clientsecret", config["clientsecret"])
@@ -88,14 +98,12 @@ def config_logging(level):
 
 
 def get_all_services():
+    services = {}
     if not os.path.exists(syncspecs.METACACHEPATH):
-        console.print("Preparing API specs. Please wait...")
-        syncspecs.sync_all()
-        console.print("Done")
-        sys.exit(1)
+        # Specs not synced yet, return empty dict
+        return services
     with open(syncspecs.METACACHEPATH, "r") as fp:
         metacache = json.load(fp)
-    services = {}
     for filename in sorted(os.listdir(syncspecs.APISPECPATH)):
         if not filename.endswith(".json"):
             continue
@@ -443,9 +451,9 @@ def resolve_openapi_references(service, parameter):
     return parameter
 
 
-def process_openapi_specs(alloperations, command_subparsers, config):
+def process_openapi_specs(all_services, alloperations, command_subparsers, config):
     superservice_subparsers = {}
-    for service in get_all_services().values():
+    for service in all_services.values():
         service["originalname"] = service["name"]
         if "_" in service["name"]:
             # The adm service has so many operations, that it seems a good idea
@@ -528,7 +536,11 @@ def get_value(atype, aspec, args):
     return adict
 
 
-def authenticate_api(config):
+class AuthenticationException(Exception):
+    pass
+
+
+def authenticate_api(config, use_cache=True):
     access_token = None
     if not use_environ_keys():
         # Only rely on keyring if environment keys not used
@@ -536,7 +548,7 @@ def authenticate_api(config):
         if timestamp and int(timestamp) + 59 * 60 > time.time():
             # we can use cached access_tokens for up to 59m
             access_token = keyring.get_password("cxcli", ":access_token")
-    if True or access_token is None:
+    if not use_cache or access_token is None:
         # get a fresh access_token
         auth_data = {}
         auth_data["grant_type"] = "client_credentials"
@@ -554,14 +566,13 @@ def authenticate_api(config):
         if response.status_code == 200:
             result = response.json()
         else:
-            raise Exception(
+            raise AuthenticationException(
                 "Failed to authenticate with Citrix Cloud."
                 + " Return code: %d" % (response.status_code)
                 + response.text
             )
         access_token = result["access_token"]
-        if not use_environ_keys():
-            # Only rely on keyring if environment keys not used
+        if use_cache and not use_environ_keys():
             keyring.set_password("cxcli", ":access_token", access_token)
             keyring.set_password(
                 "cxcli", ":access_token_timestamp", str(int(time.time()))
@@ -653,30 +664,40 @@ def _main():
     command_subparsers = parser.add_subparsers(
         dest="command", help="Available Services", metavar=""
     )
-    alloperations = {}
     config = get_configuration()
-    process_openapi_specs(alloperations, command_subparsers, config)
+    all_services = get_all_services()
+    alloperations = {}
+    process_openapi_specs(all_services, alloperations, command_subparsers, config)
     argcomplete.autocomplete(parser)
     args = parser.parse_args(sys.argv[1:])
+
+    # Deal with generic cmd-line options
     config_logging("DEBUG" if args.verbose else "WARNING")
-    if args.update_specs:
+    if args.configure:
+        prompt_configuration()
+    if args.update_specs or len(all_services) == 0:
         syncspecs.reset_all()
         console.print("Preparing API specs. Please wait...")
         syncspecs.sync_all()
-        console.print("Done.")
+        console.print("Done.", style="green")
     if args.update_unpublished_specs:
         console.print("Preparing API specs. Please wait...")
-        sync_all_unpublished()
-        console.print("Done.")
-    if args.configure:
-        prompt_configuration()
+        sync_all_unpublished(config)
+        console.print("Done.", style="green")
+    if args.configure or args.update_specs or args.update_unpublished_specs:
+        return 0
+
+    # Make sure the configuration is place
     if config is None:
         scriptname = os.path.basename(__file__)
         console.print(
-            f"Please configure CLI credentials before use: {scriptname} --configure\n"
-            f"Or provide configuration using environment variables: CXCUSTOMERID, CXCLIENTID, and CXCLIENTSECRET\n",
+            f"Please configure CLI credentials before use: {sys.argv[0]} --configure\n"
+            f"Or provide configuration using environment variables: CXCUSTOMERID, CXCLIENTID, and CXCLIENTSECRET",
             style="red",
         )
+        return 2
+
+    # Now deal with actual commands
     if not args.command:
         parser.print_help()
     elif not "subcommand" in args:
@@ -686,7 +707,7 @@ def _main():
             alloperations[f"{args.command}_{args.commandcomponent}"][
                 "command_parser"
             ].print_help()
-    if "command" in args and "subcommand" in args:
+    elif "command" in args and "subcommand" in args:
         return execute_command(alloperations, config, args)
     return 0
 
@@ -697,11 +718,10 @@ def get_default_headers():
     return headersdict
 
 
-def sync_all_unpublished():
-    config = get_configuration()
+def sync_all_unpublished(config):
     url = f"https://releasesapi.citrixworkspacesapi.net/{config['customerid']}/releases"
     headersdict = get_default_headers()
-    headersdict.update(authenticate_api(config))
+    headersdict.update(authenticate_api(get_configuration()))
     response = requests.get(url, headers=headersdict)
     if not response.ok:
         log.error(f"Failure from {url} - {response.status_code}")

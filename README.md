@@ -43,7 +43,7 @@ cx --configure
 Follow the Citrix Cloud Documentation, to [create an API Client](https://developer.cloud.com/getting-started/docs/overview) and obtain the `CustomerId`, `ClientID`, `ClientSecret` required as part of the configuration.
 
 >**Note:**
-> By default, cxcli will store credentials in the user's system keyring service (Windows Credential Locker, macOS Keychain, KDE KWallet, FreeDesktop Secret Service). Should your environment not have a keyring service, you can provide the configuration using environment variables `CXCUSTOMERID`, `CXCLIENTID`, and `CXCLIENTSECRET`.
+> By default, cxcli will store credentials in the user's system keyring service (Windows Credential Locker, macOS Keychain, KDE KWallet, FreeDesktop Secret Service). Should your environment not have a keyring service, or every keyring access require a keyring password, you can provide the configuration alternatively using environment variables `CXCUSTOMERID`, `CXCLIENTID`, and `CXCLIENTSECRET`.
 
 ## Usage examples
 

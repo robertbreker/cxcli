@@ -60,7 +60,10 @@ def mymerge(source, destination):
 
 
 def reset_all():
-    shutil.rmtree(APISPECPATH)
+    try:
+        shutil.rmtree(APISPECPATH)
+    except FileNotFoundError:
+        pass
 
 
 def sync_all():
