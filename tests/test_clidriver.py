@@ -18,13 +18,20 @@ def read_datafile(name):
 @pytest.fixture
 def services_mock(mocker, requests_mock):
     # Get fewer specs for faster tests
-    mocker.patch.object(
-        syncspecs,
-        "get_openapi_specs",
-        return_value={
-            "notifications": f"{syncspecs.URL}/explore-more-apis-sdks/cloud-services-platform/notifications/spec/cc_notifications_auth_published.json",
-            "systemlog": f"{syncspecs.URL}/explore-more-apis-sdks/cloud-services-platform/systemlog/spec/systemlog.yml",
+    json = [
+        {
+            "title": "notifications",
+            "apis": "/explore-more-apis-sdks/cloud-services-platform/notifications/spec/cc_notifications_auth_published.json",
         },
+        {
+            "title": "systemlog",
+            "apis": "/explore-more-apis-sdks/cloud-services-platform/systemlog/spec/systemlog.yml",
+        },
+    ]
+    requests_mock.get(
+        "https://developer-data.cloud.com/master/all_site_data.json",
+        status_code=200,
+        json=json,
     )
     requests_mock.get(
         f"{syncspecs.URL}/explore-more-apis-sdks/cloud-services-platform/notifications/spec/cc_notifications_auth_published.json",

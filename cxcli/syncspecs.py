@@ -11,67 +11,70 @@ from urllib.parse import urlparse
 
 URL = "https://developer-data.cloud.com/master"
 APISPECPATH = os.path.join(os.path.expanduser("~"), ".cxcli", "apispecs")
-METACACHEPATH = os.path.join(APISPECPATH, "metacache.dat")
+METACACHEPATH = os.path.join(APISPECPATH, "metadata.dat")
 WORKERCOUNT = 4
 
 
-def parse_all_site_data(data, apis={}):
-    if isinstance(data, list):
-        for item in data:
-            apis = parse_all_site_data(item, apis)
-    elif isinstance(data, dict):
-        if "apis" in data and "title" in data:
-            title = (
-                data["title"]
+def fetch_portal_specs_from_sitedata(sitedata, specsdict={}):
+    if isinstance(sitedata, list):
+        for item in sitedata:
+            specsdict = fetch_portal_specs_from_sitedata(item, specsdict)
+    elif isinstance(sitedata, dict):
+        if "apis" in sitedata and "title" in sitedata:
+            specfilename = (
+                sitedata["title"]
                 .lower()
                 .replace(" ", "")
                 .replace("cloudservicesplatform-", "")
             )
-            if "/adm/" in data["apis"]:
-                title = "adm_" + title
-            if title == "exportandimportrestapis":
-                title = "microapps"
-            elif title == "windowsmanagement":
-                title = "wem"
-            elif title == "globalappconfigurationservice":
-                title = "globalappconfiguration"
-            apis[title] = URL + data["apis"]
-        for key, value in data.items():
-            apis = parse_all_site_data(value, apis)
-    return apis
+            if "/adm/" in sitedata["apis"]:
+                specfilename = "adm_" + specfilename
+            if specfilename == "exportandimportrestapis":
+                specfilename = "microapps"
+            elif specfilename == "windowsmanagement":
+                specfilename = "wem"
+            elif specfilename == "globalappconfigurationservice":
+                specfilename = "globalappconfiguration"
+            specsdict[specfilename] = URL + sitedata["apis"]
+        for _, value in sitedata.items():
+            specsdict = fetch_portal_specs_from_sitedata(value, specsdict)
+    return specsdict
 
 
-def get_openapi_specs():
+def fetch_portal_specs():
     req = requests.get(f"{URL}/all_site_data.json")
     req.raise_for_status()
     data = yaml.safe_load(req.content)
-    apis = parse_all_site_data(data)
-    return apis
+    specsdict = fetch_portal_specs_from_sitedata(data)
+    return specsdict
 
 
-def mymerge(source, destination):
+def merge_spec(source, destination):
     for key, value in source.items():
         if isinstance(value, dict):
             node = destination.setdefault(key, {})
-            mymerge(value, node)
+            merge_spec(value, node)
         else:
             destination[key] = value
     return destination
 
 
-def reset_all():
+def reset_synced_specs():
     try:
-        shutil.rmtree(APISPECPATH)
+        for filename in os.listdir(APISPECPATH):
+            filepath = os.path.join(APISPECPATH, filename)
+            if os.path.isfile(filepath) or os.path.islink(filepath):
+                os.unlink(filepath)
     except FileNotFoundError:
         pass
 
 
-def sync_all():
-    mkspecdir()
-    sync_specs(get_openapi_specs())
+def sync_public_specs():
+    make_spec_dir()
+    sync_specs(fetch_portal_specs())
 
 
-def mkspecdir():
+def make_spec_dir():
     try:
         os.makedirs(APISPECPATH)
     except OSError as e:
@@ -79,13 +82,13 @@ def mkspecdir():
             raise
 
 
-def sync_specs(specs):
-    mkspecdir()
+def sync_specs(specdict):
+    make_spec_dir()
     with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERCOUNT) as executor:
-        results = executor.map(sync_spec_single, specs.items())
+        results = executor.map(sync_specs_single, specdict.items())
         groups = {}
         for result in track(
-            results, description="Updating OpenAPI specs...", total=len(specs)
+            results, description="Downloading OpenAPI specs...", total=len(specdict)
         ):
             if result is None:
                 continue
@@ -93,14 +96,14 @@ def sync_specs(specs):
             spec = result["spec"]
             if groupname not in groups:
                 groups[groupname] = {}
-            groups[groupname] = mymerge(spec, groups[groupname])
+            groups[groupname] = merge_spec(spec, groups[groupname])
     for groupname, groupspec in groups.items():
         with open(os.path.join(APISPECPATH, groupname), "w+") as fp:
             json.dump(groupspec, fp, indent=2)
-    build_metacache()
+    build_metadata()
 
 
-def sync_spec_single(openapi_spec):
+def sync_specs_single(openapi_spec):
     (apiname, apiurl) = openapi_spec
     if apiname.startswith("adm") and "_" in apiname:
         asplit = apiname.split("_")
@@ -145,7 +148,16 @@ def sync_spec_single(openapi_spec):
     return {"groupname": groupname, "spec": spec}
 
 
-def build_metacache():
+def patch_parameters(spec, add_parameters):
+    for pathkey, pathvalue in spec["paths"].items():
+        for operationkey, operationvalue in pathvalue.items():
+            if "parameters" in operationvalue:
+                for add in add_parameters:
+                    spec["paths"][pathkey][operationkey]["parameters"].append(add)
+    return spec
+
+
+def build_metadata():
     metacache = {}
     for filename in sorted(os.listdir(APISPECPATH)):
         if not filename.endswith(".json"):
@@ -155,12 +167,3 @@ def build_metacache():
             metacache[filename.replace(".json", "")] = spec["info"]["title"]
     with open(METACACHEPATH, "w") as fp:
         json.dump(metacache, fp, indent=2)
-
-
-def patch_parameters(spec, add_parameters):
-    for pathkey, pathvalue in spec["paths"].items():
-        for operationkey, operationvalue in pathvalue.items():
-            if "parameters" in operationvalue:
-                for add in add_parameters:
-                    spec["paths"][pathkey][operationkey]["parameters"].append(add)
-    return spec

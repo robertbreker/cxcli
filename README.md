@@ -67,6 +67,7 @@ cx notifications Notifications_CreateItems --eventId $(uuidgen) --content '{
 
 ```bash
 cx microapps export_bundle --geo us --bundleExportType default --integrationExportConfig-id 1 --output-binary integration.mapp
+```
 
 - Re-importing the Microapp integration bundle, providing the necessary base configuration:
 

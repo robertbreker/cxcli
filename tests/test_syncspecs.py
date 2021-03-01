@@ -3,21 +3,17 @@
 import os
 import sys
 
+from test_clidriver import services_mock
+
 sys.path.insert(0, os.path.dirname(__file__) + "/../")
 import cxcli.syncspecs as syncspecs
 
 
-def test_reset_all(mocker):
-    rmtree = mocker.patch("shutil.rmtree")
-    syncspecs.reset_all()
-    rmtree.assert_called_once()
+def test_reset_synced_specs(mocker):
+    unlink = mocker.patch("os.unlink")
+    syncspecs.reset_synced_specs()
 
 
-def test_sync_all(mocker):
-    mocker.patch(
-        "cxcli.syncspecs.parse_all_site_data",
-        return_value={
-            "systemlog": f"{syncspecs.URL}/explore-more-apis-sdks/cloud-services-platform/systemlog/spec/systemlog.yml"
-        },
-    )
-    syncspecs.sync_all()
+def test_sync_public_specs(mocker, services_mock):
+
+    syncspecs.sync_public_specs()

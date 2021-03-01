@@ -673,18 +673,23 @@ def _main():
 
     # Deal with generic cmd-line options
     config_logging("DEBUG" if args.verbose else "WARNING")
-    if args.configure:
-        prompt_configuration()
-    if args.update_specs or len(all_services) == 0:
-        syncspecs.reset_all()
-        console.print("Preparing API specs. Please wait...")
-        syncspecs.sync_all()
-        console.print("Done.", style="green")
-    if args.update_unpublished_specs:
-        console.print("Preparing API specs. Please wait...")
-        sync_all_unpublished(config)
-        console.print("Done.", style="green")
-    if args.configure or args.update_specs or args.update_unpublished_specs:
+    if (
+        args.configure
+        or args.update_specs
+        or len(all_services) == 0
+        or args.update_unpublished_specs
+    ):
+        if args.configure:
+            prompt_configuration()
+        if args.update_specs or len(all_services) == 0:
+            syncspecs.reset_synced_specs()
+            console.print("Preparing API specs. Please wait...")
+            syncspecs.sync_public_specs()
+            console.print("Done.", style="green")
+        if args.update_unpublished_specs:
+            console.print("Preparing API specs. Please wait...")
+            sync_all_unpublished(config)
+            console.print("Done.", style="green")
         return 0
 
     # Make sure the configuration is place
