@@ -7,8 +7,8 @@ cxcli is an Experimental CLI for Citrix Cloud.
 The CLI works using the REST APIs of Citrix Cloud, as documented on [Citrix's Developer Portal](https://developer.cloud.com).
 
 <p float="left">
-  <img alt="Usage" src="https://user-images.githubusercontent.com/4073077/107159903-da12ca80-698a-11eb-8c38-64d4594178bc.png" width="45%">
-  <img alt="Microapps Sample" src="https://user-images.githubusercontent.com/4073077/107159986-4c83aa80-698b-11eb-9cd0-7c2b7873ebab.png" width="45%">
+  <img alt="Usage" src="https://user-images.githubusercontent.com/4073077/109686405-2613f200-7b7a-11eb-9626-ad413f9a4272.png" width="45%">
+  <img alt="Microapps Sample" src="https://user-images.githubusercontent.com/4073077/109686633-5e1b3500-7b7a-11eb-9474-71af9a595d1c.png" width="45%">
 </p>
 
 ## Features
