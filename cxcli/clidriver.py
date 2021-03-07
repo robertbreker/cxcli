@@ -178,14 +178,21 @@ def patch_spec(service):
             operationids.append(methodvalue["operationId"])
 
             # Resolve references in spec
+            newparameters = list()
             if "parameters" in methodvalue:
-                newparameters = list()
                 for parameter in methodvalue["parameters"]:
                     if not should_ignore_parameter(parameter):
                         newparameters.append(
                             resolve_openapi_references(service, parameter)
                         )
-                methodvalue["parameters"] = newparameters
+
+            # ToDo: monitorodata does not declare customer header
+            if service["name"] == "monitorodata":
+                newparameters.append(
+                    {"name": "Customer", "in": "header", "required": True}
+                )
+
+            methodvalue["parameters"] = newparameters
         # Purge uneccesary methods
         for method in purgemethods:
             del service["spec"]["paths"][path][method]
