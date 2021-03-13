@@ -105,6 +105,8 @@ def sync_specs(specdict):
 
 def sync_specs_single(openapi_spec):
     (apiname, apiurl) = openapi_spec
+    if apiname == "workspaceenvironmentmanagement":
+        apiname = "wem"
     if apiname.startswith("adm") and "_" in apiname:
         asplit = apiname.split("_")
         groupname = f"{asplit[0]}_{asplit[1]}.json"
