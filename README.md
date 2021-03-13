@@ -1,6 +1,4 @@
-# cxcli: Experimental CLI for Citrix Cloud
-
-cxcli is an Experimental CLI for Citrix Cloud.
+# cx: Experimental CLI for Citrix Cloud
 
 >**Note:**  Given that this is experimental software, your mileage may vary. The CLI-syntax is not yet finalized and may still change.
 
@@ -14,7 +12,7 @@ The CLI works using the REST APIs of Citrix Cloud, as documented on [Citrix's De
 ## Features
 
 - Provides a simple and efficient way to interact with Citrix Cloud
-- Supports many Citrix Cloud services including: **adm**, **apppersonalization**, **cvadrestapis**, **globalappconfiguration**, **manageddesktops**, **microapps**, **notifications**, **quickdeploy**, **securebrowser**, **systemlog**, **virtualappsessentialls**, **webhook**, and **wem**.
+- Supports many Citrix Cloud services including: **adm**, **apppersonalization**, **cvadrestapis**, **globalappconfiguration**, **manageddesktops**, **microapps**, **notifications**, **quickdeploy**, **securebrowser**, **reportingapi**, **systemlog**, **virtualappsessentialls**, **webhook**, and **wem**.
 - Always up-to-date as it synchronizes the latest published [OpenAPI-specifications](https://developer.cloud.com).
 - Responses can be formatted as either JSON, YAML, Table, CSV, or binary.
 - Powerful query and filter syntax powered by [JMESPath](https://jmespath.org/tutorial.html).
@@ -53,6 +51,8 @@ Follow the Citrix Cloud Documentation, to [create an API Client](https://develop
 - Provide output as YAML: `cxcli systemlog GetRecords --output-as yaml`
 - Filter for fields using JMESPath: `cx systemlog GetRecords --cliquery 'Items[].Message."en-US"'`
 - Filter for values using JMESPath: `cx systemlog GetRecords --cliquery 'Items[?ActorDisplayName == "a.bad@m.an"]'`
+- Show information about the CVAD Site: `cx cvadrestapis Me_GetMe`
+
 - Create an Administrator notification in Citrix Cloud:
 
 ```bash

@@ -651,7 +651,7 @@ def main():
 
 
 def _main():
-    parser = argparse.ArgumentParser(description="cxcli - CLI for Citrix Cloud")
+    parser = argparse.ArgumentParser(description="cx - CLI for Citrix Cloud")
     parser.add_argument(
         "--verbose", help="increase output verbosity", action="store_true"
     )
