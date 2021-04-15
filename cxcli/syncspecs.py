@@ -36,7 +36,7 @@ def fetch_portal_specs_from_sitedata(sitedata, specsdict={}):
                 specfilename = "wem"
             elif specfilename == "globalappconfigurationservice":
                 specfilename = "globalappconfiguration"
-            specfilename = specfilename.replace('citrixcloud-', '')
+            specfilename = specfilename.replace("citrixcloud-", "")
             specsdict[specfilename] = URL + sitedata["apis"]
         for _, value in sitedata.items():
             specsdict = fetch_portal_specs_from_sitedata(value, specsdict)

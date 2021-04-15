@@ -22,6 +22,7 @@ import yaml
 import re
 import sys
 
+from . import __version__
 from . import syncspecs
 
 console = Console()
@@ -651,7 +652,9 @@ def main():
 
 
 def _main():
-    parser = argparse.ArgumentParser(description="cx - CLI for Citrix Cloud")
+    parser = argparse.ArgumentParser(
+        description=f"cx {__version__} - CLI for Citrix Cloud"
+    )
     parser.add_argument(
         "--verbose", help="increase output verbosity", action="store_true"
     )
