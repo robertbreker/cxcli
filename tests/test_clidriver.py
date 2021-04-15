@@ -44,7 +44,7 @@ def services_mock(mocker, requests_mock):
 
     # Mock the calls that are being made
     requests_mock.get(
-        "https://api-us.cloud.com/systemlog/dvintfd45cca/records",
+        "https://api-us.cloud.com/systemlog/records",
         status_code=200,
         text=read_datafile("systemlog_GetRecords.response"),
     )
