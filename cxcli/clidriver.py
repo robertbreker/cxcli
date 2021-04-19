@@ -744,23 +744,31 @@ def sync_all_unpublished(config):
     cc_service_urls = {}
     for serviceinfo in response.json():
         if (
-            serviceinfo["Region"] == "EastUS"
-            and serviceinfo["Release"] == "release-a"
-            and serviceinfo["Fqdn"].endswith(".citrixworkspacesapi.net")
-            and serviceinfo["Service"]
+            serviceinfo["region"] == "EastUS"
+            and serviceinfo["release"] == "release-a"
+            and serviceinfo["fqdn"].endswith(".citrixworkspacesapi.net")
+            and serviceinfo["service"]
             not in (
+                "Administrators",
                 "Console",
                 "DemoResourceProvider",
                 "Encryption",
                 "FasHub",
+                "LicensingConsole",
+                "LuiDashboard",
                 "HealthDataStatusManager",
                 "MediaStorage",
+                "PolicySets",
+                "ReceiverDemo",
                 "ReleasesProxy",
+                "StoreFrontLanding",
+                "TemplateLibrary",
+                "Onboarding",
                 "WebRelay",
             )
         ):
-            service = serviceinfo["Service"].lower()
-            cc_service_urls[service] = f"{serviceinfo['Fqdn']}/swagger/docs/v1"
+            service = serviceinfo["service"].lower()
+            cc_service_urls[service] = f"{serviceinfo['fqdn']}/swagger/docs/v1"
     # Can't get all services from releaseapi, so add the others too
     for service in (
         "customers",
